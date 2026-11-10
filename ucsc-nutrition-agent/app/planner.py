@@ -47,8 +47,15 @@ def daily_targets(profile: dict, day_type: str = "rest") -> dict:
 
 
 # ------------------------------------------------------------------------- helpers
+_FILLER = {"cage", "free", "organic", "natural", "fresh", "large", "local", "the", "and", "with"}
+
+
 def name_key(name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", name.lower()).strip()
+    """Normalised identity for variety checks and learned preferences:
+    'Hard Boiled Cage-Free Egg' and 'Hard Boiled Egg' are the same food."""
+    words = re.sub(r"[^a-z0-9]+", " ", name.lower()).split()
+    words = [w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w for w in words if w not in _FILLER]
+    return " ".join(words)
 
 
 def is_avoided(name: str, rules: list[list[str]]) -> bool:
@@ -95,7 +102,8 @@ def classify(item: dict) -> str:
     if p >= 15 or (p >= 9 and p * 4 / kcal >= 0.25):
         return "protein"
     if (kcal <= 130 and any(w in name for w in VEG_WORDS)
-            and not any(_has_word(name, w) for w in ("tortilla", "tortillas", "noodle", "noodles", "pasta", "rice", "potato", "potatoes"))):
+            and not any(_has_word(name, w) for w in ("tortilla", "tortillas", "noodle", "noodles", "pasta", "rice", "potato", "potatoes"))
+            and not any(w in name for w in ("pickled", "pepperoncini", "jalapeno", "olive", "relish", "sauerkraut", "kimchi"))):
         return "veg"
     if (c * 4 / kcal >= 0.5 and p < 9 and any(_has_word(name, w) for w in STARCH_WORDS)
             and not any(w in name for w in NOT_STARCH_WORDS)):
@@ -196,7 +204,7 @@ def meal_loss(t: dict, target: dict) -> float:
         return (t[k] - target[k]) / max(target[k], 1.0)
 
     p = rel("protein")
-    return 5 * rel("kcal") ** 2 + (8 if p < 0 else 1.5) * p * p + 0.6 * rel("carbs") ** 2 + 0.8 * rel("fat") ** 2
+    return 5 * rel("kcal") ** 2 + (8 if p < 0 else 1.5) * p * p + 0.6 * rel("carbs") ** 2 + 1.3 * rel("fat") ** 2
 
 
 def optimise_meal(candidates: list[dict], target: dict, prefs: Prefs, used: set[str]) -> list[tuple[dict, float, str]]:
@@ -406,10 +414,14 @@ def generate(menu: dict, profile: dict, d: Date, day_type: str | None = None, pr
                 cat = (c.get("category") or "").lower()
                 if prefs.allowed(c) and (any(s in cat for s in SNACK_CATEGORIES) or "hard boiled" in c["name"].lower()
                                          or "milk" == c["name"].lower().split()[-1]):
-                    if (c.get("protein") or 0) >= 4 and name_key(c["name"]) not in used:
+                    kc = c.get("kcal") or 0
+                    if ((c.get("protein") or 0) >= 4 and kc > 0 and c["protein"] * 4 / kc >= 0.3
+                ):
                         pool.append((meal, c))
         by_name = {name_key(c["name"]): (m, c) for m, c in pool}
-        pick = best_single([c for _, c in by_name.values()], {"protein": max(remaining["protein"], 0), "kcal": max(remaining["kcal"], 0)}, prefs, used)
+        # Repeating a breakfast food (e.g. yogurt) as a snack is fine: mild penalty only.
+        pick = best_single([c for _, c in by_name.values()], {"protein": max(remaining["protein"], 0), "kcal": max(remaining["kcal"], 0)},
+                           prefs, used=set())
         if pick:
             c, q, role = pick
             meal = by_name[name_key(c["name"])][0]

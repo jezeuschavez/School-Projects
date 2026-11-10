@@ -269,6 +269,12 @@ class FoodProClient:
             time.sleep(wait)
         self._last = time.monotonic()
 
+    def _reset_session(self) -> None:
+        # FoodPro stores the Nutrition Calculator "cart" in cookies; they grow with
+        # every report until requests fail (400/502). Start a fresh session.
+        self._http.cookies.clear()
+        self._primed = False
+
     def _prime(self) -> None:
         self._throttle()
         self._http.get("/").raise_for_status()
@@ -282,10 +288,10 @@ class FoodProClient:
                     self._prime()
                 self._throttle()
                 r = self._http.request(method, path, **kw)
-                if r.status_code >= 500 or "Runtime Error" in r.text[:2000]:
+                if r.status_code == 400 or r.status_code >= 500 or "Runtime Error" in r.text[:2000]:
                     # FoodPro answers with an ASP.NET error page when its session
                     # cookies are missing/expired: re-prime and retry.
-                    self._primed = False
+                    self._reset_session()
                     raise FoodProError(f"FoodPro error page (HTTP {r.status_code})")
                 r.raise_for_status()
                 return r.text
@@ -336,6 +342,7 @@ class FoodProClient:
             "POST", "nutRpt.aspx", params=rpt_params, content=body,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         ))
+        self._reset_session()  # drop the cart cookies the report just set
         for it in items:
             n = nut.get(it["rec"])
             for k in ("kcal", "protein", "carbs", "sugar", "fat"):

@@ -25,8 +25,13 @@ def _load_menu(html):
                      (D, db.now_iso()))
 
 
-def test_day_flow(html):
+def test_day_flow(html, monkeypatch):
     _load_menu(html)
+    db.save_profile({"default_hall": "40"})  # the fixture menu is hall 40
+
+    def no_network(*a, **k):
+        raise AssertionError("test tried to reach FoodPro")
+    monkeypatch.setattr("app.menus.sync_menu", no_network)
     c = TestClient(main.app)
     day = c.get(f"/api/day/{D}").json()
     items = day["plan"]["items"]
