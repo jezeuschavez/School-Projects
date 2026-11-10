@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+anthropic>=2.0
+apscheduler>=3.10,<4
+beautifulsoup4>=4.12
+certifi
+pytest>=8

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Slug Macros">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icon-180.png">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <title>Slug Macros</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">Slug Macros</div>
+      <div class="topbar-sub" id="topbar-sub"></div>
+    </header>
+    <main id="view" aria-live="polite"></main>
+    <nav class="tabbar" id="tabbar">
+      <button data-tab="today" class="active"><span class="ti">●</span>Today</button>
+      <button data-tab="tomorrow"><span class="ti">◐</span>Tomorrow</button>
+      <button data-tab="progress"><span class="ti">↘</span>Progress</button>
+      <button data-tab="settings"><span class="ti">⚙</span>Settings</button>
+    </nav>
+  </div>
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+  <section id="sheet" class="sheet" hidden role="dialog" aria-modal="true"></section>
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
