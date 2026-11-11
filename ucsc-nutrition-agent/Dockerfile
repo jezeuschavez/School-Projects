@@ -10,5 +10,6 @@ COPY app ./app
 
 EXPOSE 8000
 # One worker only: the 8 PM scheduler runs inside the web process.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", \
-     "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Uses $PORT when the host provides one (Railway, Render), else 8000 (Fly).
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 \
+    --proxy-headers --forwarded-allow-ips "*"
